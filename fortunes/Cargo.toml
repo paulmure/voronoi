@@ -1,0 +1,9 @@
+[package]
+name = "fortunes"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+approx = "0.5.1"
+ordered-float = "4.2.0"
+priority-queue = "2.0.2"
