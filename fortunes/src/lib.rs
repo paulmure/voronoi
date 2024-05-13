@@ -6,6 +6,8 @@ use crate::beachline::{Arc, Beachline, BreakPoint};
 
 mod beachline;
 pub mod geometry;
+#[cfg(test)]
+mod test_utils;
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 enum Event {
@@ -94,19 +96,9 @@ fn remove_circle_event(arc_idx: usize, eq: &mut EventQueue) {
 
 #[cfg(test)]
 mod tests {
-    use approx::relative_eq;
+    use crate::test_utils::{compare_edges, compare_segments};
 
     use super::*;
-
-    fn compare_points(a: &Point, b: &Point) -> bool {
-        relative_eq!(a.x.into_inner(), b.x.into_inner())
-            && relative_eq!(a.y.into_inner(), b.y.into_inner())
-    }
-
-    fn compare_segments(a: &Segment, b: &Segment) -> bool {
-        (compare_points(&a[0], &b[0]) && compare_points(&a[1], &b[1]))
-            || (compare_points(&a[0], &b[1]) && compare_points(&a[1], &b[0]))
-    }
 
     #[test]
     fn vertical_line() {
@@ -132,11 +124,7 @@ mod tests {
             ],
         ];
 
-        assert!(
-            (compare_segments(&voronoi[0], &gold[0]) && compare_segments(&voronoi[1], &gold[1]))
-                || (compare_segments(&voronoi[0], &gold[1])
-                    && compare_segments(&voronoi[1], &gold[0]))
-        )
+        assert!(compare_edges(&gold, &voronoi));
     }
 
     #[test]
@@ -163,10 +151,38 @@ mod tests {
             ],
         ];
 
-        assert!(
-            (compare_segments(&voronoi[0], &gold[0]) && compare_segments(&voronoi[1], &gold[1]))
-                || (compare_segments(&voronoi[0], &gold[1])
-                    && compare_segments(&voronoi[1], &gold[0]))
-        )
+        assert!(compare_edges(&gold, &voronoi));
+    }
+
+    #[test]
+    fn three_points() {
+        let bounding_box = BoundingBox::new(0.0.into(), 1000.0.into(), 0.0.into(), 1000.0.into());
+
+        let sites = vec![
+            Point::new(250.0.into(), 250.0.into()),
+            Point::new(500.0.into(), 750.0.into()),
+            Point::new(750.0.into(), 250.0.into()),
+        ];
+
+        let voronoi = fortunes_algorithm(&sites, &bounding_box);
+
+        assert_eq!(voronoi.len(), 3);
+
+        let gold = [
+            [
+                Point::new(500.0.into(), 437.5.into()),
+                Point::new(500.0.into(), 0.0.into()),
+            ],
+            [
+                Point::new(500.0.into(), 437.5.into()),
+                Point::new(1000.0.into(), 687.5.into()),
+            ],
+            [
+                Point::new(500.0.into(), 437.5.into()),
+                Point::new(0.0.into(), 687.5.into()),
+            ],
+        ];
+
+        assert!(compare_edges(&gold, &voronoi));
     }
 }

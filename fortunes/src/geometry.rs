@@ -112,13 +112,19 @@ pub fn point_on_arc_at_x(focus: &Point, yl: OrderedFloat<f64>, x: OrderedFloat<f
     let dx2 = dx * dx;
     let dy = yf - yl;
 
-    let y = if dy == 0.0 {
-        yl
+    if dy == 0.0 {
+        Point::new((focus.x + x) / 2.0, yl)
     } else {
-        dx2 / (dy * 2.0) + (yf + yl) / 2.0
-    };
+        Point::new(x, dx2 / (dy * 2.0) + (yf + yl) / 2.0)
+    }
 
-    Point::new(x, y)
+    // let y = if dy == 0.0 {
+    //     yl
+    // } else {
+    //     dx2 / (dy * 2.0) + (yf + yl) / 2.0
+    // };
+
+    // Point::new(x, y)
 }
 
 pub fn normal_vector(point: Point) -> Point {
@@ -232,11 +238,75 @@ pub fn bounded_segment(origin: &Point, direction: &Point, bounding_box: &Boundin
         (y_max - y) / dy
     };
 
-    let c = min(cx, cy);
+    let c = if dx == OrderedFloat(0.0) {
+        cy
+    } else if dy == OrderedFloat(0.0) {
+        cx
+    } else {
+        min(cx, cy)
+    };
     let destination = Point {
         x: x + c * dx,
         y: y + c * dy,
     };
 
     [*origin, destination]
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utils::compare_segments;
+
+    use super::*;
+
+    #[test]
+    fn bounding_box_vertical() {
+        let bbox = BoundingBox::new(0.0.into(), 1000.0.into(), 0.0.into(), 1000.0.into());
+
+        let origin = Point::new(500.0.into(), 500.0.into());
+        let direction = Point::new(0.0.into(), 500.0.into());
+
+        let gold = [
+            Point::new(500.0.into(), 500.0.into()),
+            Point::new(500.0.into(), 1000.0.into()),
+        ];
+
+        let seg = bounded_segment(&origin, &direction, &bbox);
+
+        assert!(compare_segments(&gold, &seg));
+    }
+
+    #[test]
+    fn bounding_box_vertical_neg_0() {
+        let bbox = BoundingBox::new(0.0.into(), 1000.0.into(), 0.0.into(), 1000.0.into());
+
+        let origin = Point::new(500.0.into(), 500.0.into());
+        let direction = Point::new((-0.0).into(), 500.0.into());
+
+        let gold = [
+            Point::new(500.0.into(), 500.0.into()),
+            Point::new(500.0.into(), 1000.0.into()),
+        ];
+
+        let seg = bounded_segment(&origin, &direction, &bbox);
+
+        assert!(compare_segments(&gold, &seg));
+    }
+
+    #[test]
+    fn bounding_box_vertical_neg_both() {
+        let bbox = BoundingBox::new(0.0.into(), 1000.0.into(), 0.0.into(), 1000.0.into());
+
+        let origin = Point::new(750.0.into(), 500.0.into());
+        let direction = Point::new((-0.0).into(), (-500.0).into());
+
+        let gold = [
+            Point::new(750.0.into(), 500.0.into()),
+            Point::new(750.0.into(), 0.0.into()),
+        ];
+
+        let seg = bounded_segment(&origin, &direction, &bbox);
+
+        assert!(compare_segments(&gold, &seg));
+    }
 }

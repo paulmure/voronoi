@@ -146,6 +146,8 @@ impl Beachline {
             } else {
                 parent_node.right_child = Some(xl_idx);
             }
+        } else {
+            self.root = Some(xl_idx);
         }
 
         self.check_circle_event(a_idx, eq, yl);
