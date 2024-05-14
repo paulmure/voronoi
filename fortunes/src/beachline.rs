@@ -180,8 +180,6 @@ impl Beachline {
         eq: &mut EventQueue,
         yl: OrderedFloat<f64>,
     ) {
-        let x_idx = self.nodes.len();
-
         let (_, l_arc_idx) = self
             .left_arc(p_idx)
             .expect("replace_breakpoint: left arc not found");
@@ -192,58 +190,32 @@ impl Beachline {
         let parent_idx = self.nodes[p_idx]
             .parent
             .expect("repalce_breakpoint: parent not found");
-        let parent_node = &self.nodes[parent_idx];
-        // let pred_idx = self
-        //     .predecessor(p_idx)
-        //     .expect("repalce_breakpoint: predecessor not found");
-        // let succ_idx = self
-        //     .successor(p_idx)
-        //     .expect("replace_breakpoint: successor not found");
 
-        // let pred_node = &self.nodes[pred_idx];
-        // let succ_node = &self.nodes[succ_idx];
-
-        let (granny_idx, granny_node) = if parent_idx == xr_idx {
-            (xl_idx, &self.nodes[xl_idx])
+        let other_node = if parent_idx == xr_idx {
+            &mut self.nodes[xl_idx]
         } else {
-            (xr_idx, &self.nodes[xr_idx])
+            &mut self.nodes[xr_idx]
         };
+        other_node.data = BeachlineData::BreakPoint(x);
 
-        let (l_idx, r_idx) = if parent_node.left_child.unwrap() == p_idx {
-            (
-                granny_node.left_child.unwrap(),
-                parent_node.right_child.unwrap(),
-            )
+        let parent_node = &self.nodes[parent_idx];
+        let sibling = if parent_node.left_child.unwrap() == p_idx {
+            parent_node.right_child
         } else if parent_node.right_child.unwrap() == p_idx {
-            (
-                parent_node.left_child.unwrap(),
-                granny_node.right_child.unwrap(),
-            )
+            parent_node.left_child
         } else {
             panic!("parent not claiming child")
         };
 
-        let x_entry = BeachlineEntry::new(
-            Some(l_idx),
-            Some(r_idx),
-            granny_node.parent,
-            BeachlineData::BreakPoint(x),
-        );
-
-        if let Some(root_idx) = granny_node.parent {
-            let root_node = &mut self.nodes[root_idx];
-            if root_node.left_child.unwrap() == granny_idx {
-                root_node.left_child = Some(x_idx);
-            } else if root_node.right_child.unwrap() == granny_idx {
-                root_node.right_child = Some(x_idx);
-            } else {
-                panic!("root not claiming granny")
-            }
+        let granny_idx = parent_node.parent.expect("granny lost");
+        let granny_node = &mut self.nodes[granny_idx];
+        if granny_node.left_child.unwrap() == parent_idx {
+            granny_node.left_child = sibling;
+        } else if granny_node.right_child.unwrap() == parent_idx {
+            granny_node.right_child = sibling;
         } else {
-            self.root = Some(x_idx)
+            panic!("granny not claiming parent")
         }
-
-        self.nodes.push(x_entry);
 
         self.check_circle_event(l_arc_idx, eq, yl);
         self.check_circle_event(r_arc_idx, eq, yl);
@@ -304,39 +276,59 @@ impl Beachline {
     }
 
     fn predecessor(self: &Self, mut curr_idx: usize) -> Option<usize> {
-        let mut curr_node = &self.nodes[curr_idx];
-        loop {
-            if let Some(parent_idx) = curr_node.parent {
-                let parent_node = &self.nodes[parent_idx];
-                let left_idx = parent_node.left_child.unwrap();
-                if left_idx == curr_idx {
-                    curr_idx = parent_idx;
-                    curr_node = parent_node;
-                } else {
-                    return Some(parent_idx);
-                }
-            } else {
-                return None;
-            }
+        while self.nodes[curr_idx].parent.is_some()
+            && self.nodes[self.nodes[curr_idx].parent.unwrap()]
+                .left_child
+                .unwrap()
+                == curr_idx
+        {
+            curr_idx = self.nodes[curr_idx].parent.unwrap();
         }
+        self.nodes[curr_idx].parent
+        // let mut curr_node = &self.nodes[curr_idx];
+        // let mut curr_parent = curr_node.parent;
+        // // while let Some(parent_idx) = curr_parent && self.nodes[parent_idx].
+        // loop {
+        //     if let Some(parent_idx) = curr_node.parent {
+        //         let parent_node = &self.nodes[parent_idx];
+        //         let left_idx = parent_node.left_child.unwrap();
+        //         if left_idx == curr_idx {
+        //             curr_idx = parent_idx;
+        //             curr_node = parent_node;
+        //         } else {
+        //             return Some(parent_idx);
+        //         }
+        //     } else {
+        //         return None;
+        //     }
+        // }
     }
 
     fn successor(self: &Self, mut curr_idx: usize) -> Option<usize> {
-        let mut curr_node = &self.nodes[curr_idx];
-        loop {
-            if let Some(parent_idx) = curr_node.parent {
-                let parent_node = &self.nodes[parent_idx];
-                let right_idx = parent_node.right_child.unwrap();
-                if right_idx == curr_idx {
-                    curr_idx = parent_idx;
-                    curr_node = parent_node;
-                } else {
-                    return Some(parent_idx);
-                }
-            } else {
-                return None;
-            }
+        while self.nodes[curr_idx].parent.is_some()
+            && self.nodes[self.nodes[curr_idx].parent.unwrap()]
+                .right_child
+                .unwrap()
+                == curr_idx
+        {
+            curr_idx = self.nodes[curr_idx].parent.unwrap();
         }
+        self.nodes[curr_idx].parent
+        // let mut curr_node = &self.nodes[curr_idx];
+        // loop {
+        //     if let Some(parent_idx) = curr_node.parent {
+        //         let parent_node = &self.nodes[parent_idx];
+        //         let right_idx = parent_node.right_child.unwrap();
+        //         if right_idx == curr_idx {
+        //             curr_idx = parent_idx;
+        //             curr_node = parent_node;
+        //         } else {
+        //             return Some(parent_idx);
+        //         }
+        //     } else {
+        //         return None;
+        //     }
+        // }
     }
 
     pub fn left_arc(self: &Self, arc_idx: usize) -> Option<(&Arc, usize)> {
