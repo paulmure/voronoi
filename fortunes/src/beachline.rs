@@ -9,6 +9,23 @@ pub struct Beachline {
     nodes: Vec<BeachlineEntry>,
 }
 
+// impl Beachline {
+//     fn fmt_aux(&self, f: &mut std::fmt::Formatter<'_>, indent) -> std::fmt::Result {
+
+//         unimplemented!()
+//     }
+// }
+
+// impl std::fmt::Debug for Beachline {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         if let Some(root_idx) = self.root {
+//             unimplemented!()
+//         } else {
+//             write!(f, "Empty Beachline")
+//         }
+//     }
+// }
+
 pub struct BeachlineEntry {
     left_child: Option<usize>,
     right_child: Option<usize>,
@@ -87,7 +104,7 @@ impl Beachline {
             match &node.data {
                 BeachlineData::BreakPoint(bp) => {
                     let x = breakpoint_at_x(&bp.l, &bp.r, yl);
-                    if x < p.x {
+                    if p.x < x {
                         curr_idx = node.left_child.unwrap();
                     } else {
                         curr_idx = node.right_child.unwrap();
@@ -165,10 +182,10 @@ impl Beachline {
     ) {
         let x_idx = self.nodes.len();
 
-        let (_, l_idx) = self
+        let (_, l_arc_idx) = self
             .left_arc(p_idx)
             .expect("replace_breakpoint: left arc not found");
-        let (_, r_idx) = self
+        let (_, r_arc_idx) = self
             .right_arc(p_idx)
             .expect("replace_breakpoint: right arc not found");
 
@@ -176,26 +193,34 @@ impl Beachline {
             .parent
             .expect("repalce_breakpoint: parent not found");
         let parent_node = &self.nodes[parent_idx];
-        let (sister_idx, cousin_idx) = if parent_node.left_child.unwrap() == p_idx {
-            (r_idx, l_idx)
+        // let pred_idx = self
+        //     .predecessor(p_idx)
+        //     .expect("repalce_breakpoint: predecessor not found");
+        // let succ_idx = self
+        //     .successor(p_idx)
+        //     .expect("replace_breakpoint: successor not found");
+
+        // let pred_node = &self.nodes[pred_idx];
+        // let succ_node = &self.nodes[succ_idx];
+
+        let (granny_idx, granny_node) = if parent_idx == xr_idx {
+            (xl_idx, &self.nodes[xl_idx])
         } else {
-            (l_idx, r_idx)
+            (xr_idx, &self.nodes[xr_idx])
         };
 
-        let pred_idx = self
-            .predecessor(p_idx)
-            .expect("repalce_breakpoint: predecessor not found");
-        let succ_idx = self
-            .successor(p_idx)
-            .expect("replace_breakpoint: successor not found");
-
-        let pred_node = &self.nodes[pred_idx];
-        let succ_node = &self.nodes[succ_idx];
-
-        let (granny_idx, granny_node) = if parent_idx == pred_idx {
-            (succ_idx, succ_node)
+        let (l_idx, r_idx) = if parent_node.left_child.unwrap() == p_idx {
+            (
+                granny_node.left_child.unwrap(),
+                parent_node.right_child.unwrap(),
+            )
+        } else if parent_node.right_child.unwrap() == p_idx {
+            (
+                parent_node.left_child.unwrap(),
+                granny_node.right_child.unwrap(),
+            )
         } else {
-            (pred_idx, pred_node)
+            panic!("parent not claiming child")
         };
 
         let x_entry = BeachlineEntry::new(
@@ -209,15 +234,19 @@ impl Beachline {
             let root_node = &mut self.nodes[root_idx];
             if root_node.left_child.unwrap() == granny_idx {
                 root_node.left_child = Some(x_idx);
-            } else {
+            } else if root_node.right_child.unwrap() == granny_idx {
                 root_node.right_child = Some(x_idx);
+            } else {
+                panic!("root not claiming granny")
             }
+        } else {
+            self.root = Some(x_idx)
         }
 
         self.nodes.push(x_entry);
 
-        self.check_circle_event(l_idx, eq, yl);
-        self.check_circle_event(r_idx, eq, yl);
+        self.check_circle_event(l_arc_idx, eq, yl);
+        self.check_circle_event(r_arc_idx, eq, yl);
     }
 
     fn check_circle_event(self: &Self, arc_idx: usize, eq: &mut EventQueue, yl: OrderedFloat<f64>) {
@@ -284,7 +313,7 @@ impl Beachline {
                     curr_idx = parent_idx;
                     curr_node = parent_node;
                 } else {
-                    return Some(curr_idx);
+                    return Some(parent_idx);
                 }
             } else {
                 return None;
@@ -302,7 +331,7 @@ impl Beachline {
                     curr_idx = parent_idx;
                     curr_node = parent_node;
                 } else {
-                    return Some(curr_idx);
+                    return Some(parent_idx);
                 }
             } else {
                 return None;
@@ -335,12 +364,12 @@ impl Beachline {
         }
     }
 
-    pub fn breakpoint(self: &Self, idx: usize) -> &BreakPoint {
-        match &self.nodes[idx].data {
-            BeachlineData::BreakPoint(bp) => bp,
-            BeachlineData::Arc(..) => panic!("not a breakpoint"),
-        }
-    }
+    // pub fn breakpoint(self: &Self, idx: usize) -> &BreakPoint {
+    //     match &self.nodes[idx].data {
+    //         BeachlineData::BreakPoint(bp) => bp,
+    //         BeachlineData::Arc(..) => panic!("not a breakpoint"),
+    //     }
+    // }
 
     pub fn left_edge(self: &Self, arc_idx: usize) -> Option<(&BreakPoint, usize)> {
         self.predecessor(arc_idx)

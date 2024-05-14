@@ -96,7 +96,7 @@ fn remove_circle_event(arc_idx: usize, eq: &mut EventQueue) {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::{compare_edges, compare_segments};
+    use crate::test_utils::compare_edges;
 
     use super::*;
 
@@ -159,27 +159,35 @@ mod tests {
         let bounding_box = BoundingBox::new(0.0.into(), 1000.0.into(), 0.0.into(), 1000.0.into());
 
         let sites = vec![
-            Point::new(250.0.into(), 250.0.into()),
-            Point::new(500.0.into(), 750.0.into()),
-            Point::new(750.0.into(), 250.0.into()),
+            Point::new(100.0.into(), 100.0.into()),
+            Point::new(500.0.into(), 100.0.into()),
+            Point::new(300.0.into(), 300.0.into()),
         ];
 
         let voronoi = fortunes_algorithm(&sites, &bounding_box);
 
-        assert_eq!(voronoi.len(), 3);
+        assert_eq!(voronoi.len(), 5);
 
         let gold = [
             [
-                Point::new(500.0.into(), 437.5.into()),
-                Point::new(500.0.into(), 0.0.into()),
+                Point::new(100.0.into(), 300.0.into()),
+                Point::new(300.0.into(), 100.0.into()),
             ],
             [
-                Point::new(500.0.into(), 437.5.into()),
-                Point::new(1000.0.into(), 687.5.into()),
+                Point::new(500.0.into(), 300.0.into()),
+                Point::new(300.0.into(), 100.0.into()),
             ],
             [
-                Point::new(500.0.into(), 437.5.into()),
-                Point::new(0.0.into(), 687.5.into()),
+                Point::new(100.0.into(), 300.0.into()),
+                Point::new(0.0.into(), 400.0.into()),
+            ],
+            [
+                Point::new(300.0.into(), 100.0.into()),
+                Point::new(300.0.into(), 0.0.into()),
+            ],
+            [
+                Point::new(500.0.into(), 300.0.into()),
+                Point::new(1000.0.into(), 800.0.into()),
             ],
         ];
 

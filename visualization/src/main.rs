@@ -2,7 +2,7 @@ use fortunes::{
     fortunes_algorithm,
     geometry::{BoundingBox, Point, Segment},
 };
-use leptos::*;
+use leptos::{logging::log, *};
 use ordered_float::OrderedFloat;
 use wasm_bindgen::prelude::*;
 use web_sys::{CanvasRenderingContext2d, MouseEvent};
@@ -86,6 +86,9 @@ fn App() -> impl IntoView {
         draw_sites(context, &sites())
     });
 
+    let (px, set_px) = create_signal(0);
+    let (py, set_py) = create_signal(0);
+
     view! {
         <div class="my-10 flex w-screen flex-col items-center justify-center gap-5 text-gray-50">
             <h1 class="text-5xl">Voronoi Diagram</h1>
@@ -109,12 +112,59 @@ fn App() -> impl IntoView {
                     class="rounded bg-sky-300 px-4 py-2 font-bold text-slate-900 hover:bg-sky-500"
                     on:click=move |_| {
                         let edges = fortunes_algorithm(&sites(), &bounding_box);
+                        for edge in &edges {
+                            log!("{:?}", edge);
+                        }
                         draw_solution(&get_context(canvas_ref), &sites(), &edges);
                     }
                 >
 
                     Solve
                 </button>
+                <div class="flex flex-row items-center justify-center gap-5">
+                    <div class="flex flex-row items-center justify-center gap-4">
+                        <label for="px">x:</label>
+                        <input
+                            type="number"
+                            id="px"
+                            min="0"
+                            step="1"
+                            max=format!("{}", WIDTH)
+                            class="text-slate-900"
+                            on:input=move |ev| {
+                                set_px(event_target_value(&ev).parse().unwrap());
+                            }
+
+                            prop:value=px
+                        />
+                    </div>
+                    <div class="flex flex-row items-center justify-center gap-4">
+                        <label for="py">y:</label>
+                        <input
+                            type="number"
+                            id="py"
+                            min="0"
+                            step="1"
+                            max=format!("{}", HEIGHT)
+                            class="text-slate-900"
+                            on:input=move |ev| {
+                                set_py(event_target_value(&ev).parse().unwrap());
+                            }
+
+                            prop:value=py
+                        />
+                    </div>
+                    <button
+                        class="rounded bg-sky-300 px-4 py-2 font-bold text-slate-900 hover:bg-sky-500"
+                        on:click=move |_| {
+                            let site = Point::new((px() as f64).into(), (py() as f64).into());
+                            set_sites.update(|ss: &mut Vec<Point>| { ss.push(site) })
+                        }
+                    >
+
+                        Add Point
+                    </button>
+                </div>
                 <button
                     class="rounded bg-sky-300 px-4 py-2 font-bold text-slate-900 hover:bg-sky-500"
                     on:click=move |_| set_sites.set(vec![])
